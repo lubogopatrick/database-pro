@@ -1,0 +1,623 @@
+-- Active: 1733584241441@@127.0.0.1@3306@guild_election_db
+CREATE database guild_election_db;
+use guild_election_db;                 
+
+CREATE TABLE FACULTY (
+    FACULTY_ID VARCHAR(10) PRIMARY KEY UNIQUE,
+    FACULTY_NAME VARCHAR(200) NOT NULL,
+    Programme VARCHAR(200) NOT NULL
+);
+
+
+CREATE Table Positions(
+    Positions_id VARCHAR(20) PRIMARY KEY,
+    Position_name VARCHAR(50) NOT NULL,
+    Max_Candidates INT DEFAULT 1,);
+
+
+CREATE Table student(
+    Student_Access_No VARCHAR(10) PRIMARY KEY,
+    Registration_number VARCHAR(20),
+    Fname VARCHAR(50) NOT NULL,
+    Lname VARCHAR(50) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    Phone_number INT UNIQUE,
+    FACULTY_ID VARCHAR(10),
+    Programme varchar(50) NOT NULL,
+);
+
+ALTER TABLE STUDENT ADD CONSTRAINT fk_faculty_id FOREIGN KEY (FACULTY_ID) REFERENCES  FACULTY(FACULTY_ID);        
+                    
+CREATE Table Application(
+    Application_ID VARCHAR(10) PRIMARY KEY,
+    Applicant_Name VARCHAR(100) NOT NULL,
+    Student_Access_No VARCHAR(10),
+    Registration_number VARCHAR(20),
+    Programme VARCHAR(50),
+    Position VARCHAR(50) NOT NULL,
+    Appliation_fee INT,
+    SubmissionDate DATE,
+    FOREIGN KEY ( Student_Access_No) REFERENCES Student( Student_Access_No));
+
+CREATE TABLE Verification (
+    Verification_id VARCHAR(10) PRIMARY KEY,
+    Applicant_name VARCHAR(50) NOT NULL,
+    Access_No VARCHAR(20),
+    Reg_No VARCHAR(20),
+    Application_id VARCHAR(10),
+    Verification_Status VARCHAR(100) NOT NULL,
+    FOREIGN KEY (Application_id) REFERENCES Application(Application_id)
+);
+
+                                     
+CREATE Table Nomination(
+    Nomination_id INT AUTO_INCREMENT PRIMARY KEY,
+    Nominee_name VARCHAR(50),
+    Verification_id VARCHAR(10),
+    Nomination_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    Status ENUM('Pending', 'Approved', 'Rejected') DEFAULT 'pending',
+    FOREIGN KEY (Verification_id) REFERENCES Verification(Verification_id) ON DELETE CASCADE);
+                   
+CREATE Table vetting(
+    Vetting_id INT PRIMARY KEY, 
+    Nominee_name VARCHAR(50) NOT NULL,
+    Reputation_score DECIMAL(5,2),
+    Nomination_id INT,
+    Criminal_record BOOLEAN DEFAULT FALSE,
+    Political_experience BOOLEAN DEFAULT FALSE,
+    Membership_status BOOLEAN NOT NULL,
+    Vetting_status VARCHAR(50) NOT NULL,
+    FOREIGN KEY (Nomination_id) REFERENCES Nomination(Nomination_id));
+                   
+CREATE TABLE Candidates (
+    Candidate_id INT AUTO_INCREMENT PRIMARY KEY,
+    Candidate_Name VARCHAR(50) NOT NULL,
+    Student_Access_No VARCHAR(10),
+    Programme VARCHAR(100),
+    Manifesto TEXT,
+    Campaign_start_date DATE,
+    Campaign_end_date DATE,
+    FOREIGN KEY ( Student_Access_No) REFERENCES Student( Student_Access_No));
+
+                  
+                   
+CREATE TABLE Votes (
+    Vote_id INT AUTO_INCREMENT PRIMARY KEY,
+    Election_id INT,
+    Candidate_id INT NOT NULL,
+    Student_Access_No VARCHAR(10),
+    Vote_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
+    UNIQUE (election_id, Student_Access_No, Candidate_id),
+    FOREIGN KEY ( Student_Access_No) REFERENCES Student( Student_Access_No),
+    FOREIGN KEY (Candidate_id) REFERENCES Candidates(Candidate_id)
+);
+                   
+CREATE TABLE Results (
+    Result_id INT AUTO_INCREMENT PRIMARY KEY,
+    Candidate_id INT NOT NULL,
+    Candidate_Name VARCHAR(50), 
+    Total_votes INT NOT NULL DEFAULT 0,
+    Election_date DATE NOT NULL,
+    Vote_id INT,
+    Status ENUM('ongoing', 'completed')DEFAULT 'ongoing',
+    Created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (Candidate_id) REFERENCES Candidates(Candidate_id),
+    FOREIGN KEY (Vote_id) REFERENCES Votes(Vote_id));
+                              
+
+--INDEXES
+CREATE INDEX idx_programme ON student (Programme);
+
+CREATE INDEX idx_access_no ON student (Student_Access_No);
+
+CREATE INDEX idx_vote ON votes (Student_Access_No);
+
+
+                              
+--PROCEDURES FOR INSERTING DATA IN ALL MY TABLES
+
+DELIMITER $$
+
+CREATE PROCEDURE InsertFaculty (
+    IN p_faculty_id VARCHAR(10),
+    IN p_faculty_name VARCHAR(200),
+    IN p_programme VARCHAR(200)
+)
+BEGIN
+    INSERT INTO FACULTY (FACULTY_ID, FACULTY_NAME, Programme)
+    VALUES (p_faculty_id, p_faculty_name, p_programme);
+END$$
+
+DELIMITER ;
+
+ 
+               
+--POSITIONS
+DELIMITER //
+
+CREATE PROCEDURE InsertPosition (
+    IN p_Positions_id VARCHAR(20),
+    IN p_Position_name VARCHAR(50),
+    IN p_Max_Candidates INT
+)
+BEGIN
+    INSERT INTO Positions (Positions_id, Position_name, Max_Candidates)
+    VALUES (p_Positions_id, p_Position_name, p_Max_Candidates);
+END//
+DELIMITER ;
+
+
+--STUDENTS
+DELIMITER //
+CREATE PROCEDURE InsertStudent(
+    IN p_Student_Access_No VARCHAR(10),
+    IN p_Registration_number VARCHAR(20),
+    IN p_Fname VARCHAR(50),
+    IN p_Lname VARCHAR(50),
+    IN p_Email VARCHAR(100),
+    IN p_Phone_number INT,
+    IN p_Programme VARCHAR(50),
+    IN p_faculty_id VARCHAR(10)
+)
+BEGIN
+    INSERT INTO student (Student_Access_No, Registration_number, Fname, Lname, Email, Phone_number, Programme,faculty_id)
+    VALUES (p_Student_Access_No, p_Registration_number, p_Fname, p_Lname, p_Email, p_Phone_number, p_Programme,p_faculty_id);
+END;
+//
+DELIMITER ;
+
+
+--APPLICATION
+DELIMITER $$
+
+CREATE PROCEDURE InsertApplication (
+    IN p_application_id VARCHAR(10),
+    IN p_applicant_name VARCHAR(100),
+    IN p_student_access_no VARCHAR(10),
+    IN p_registration_number VARCHAR(20),
+    IN p_programme VARCHAR(50),
+    IN p_position VARCHAR(50),
+    IN p_application_fee INT,
+    IN p_submission_date DATE
+)
+BEGIN
+    INSERT INTO Application (
+        Application_ID, 
+        Applicant_Name, 
+        Student_Access_No, 
+        Registration_number, 
+        Programme, 
+        Position, 
+        Appliation_fee, 
+        SubmissionDate
+    )
+    VALUES (
+        p_application_id, 
+        p_applicant_name, 
+        p_student_access_no, 
+        p_registration_number, 
+        p_programme, 
+        p_position, 
+        p_application_fee, 
+        p_submission_date
+    );
+END$$
+
+DELIMITER ;
+
+
+
+--VERIFICATION
+DELIMITER $$
+
+CREATE PROCEDURE InsertVerification (
+    IN p_verification_id VARCHAR(10),
+    IN p_applicant_name VARCHAR(50),
+    IN p_access_no VARCHAR(20),
+    IN p_reg_no VARCHAR(20),
+    IN p_application_id VARCHAR(10),
+    IN p_verification_status VARCHAR(100)
+)
+BEGIN
+    INSERT INTO Verification (Verification_id, Applicant_name, Access_No, Reg_No, Application_id, Verification_Status)
+    VALUES (p_verification_id, p_applicant_name, p_access_no, p_reg_no, p_application_id, p_verification_status);
+END$$
+
+DELIMITER ;
+
+
+
+
+
+
+DELIMITER $$
+
+CREATE PROCEDURE InsertNomination (
+    IN p_nominee_name VARCHAR(50),
+    IN p_verification_id VARCHAR(10),
+    IN p_status ENUM('Pending', 'Approved', 'Rejected')
+)
+BEGIN
+    INSERT INTO Nomination (Nominee_name, Verification_id,  Status)
+    VALUES (p_nominee_name, p_verification_id, p_status);
+END$$
+
+DELIMITER ;
+
+
+
+--VETTING
+DELIMITER $$
+
+CREATE PROCEDURE InsertVetting (
+    IN p_vetting_id INT,
+    IN p_nominee_name VARCHAR(50),
+    IN p_reputation_score DECIMAL(5,2),
+    IN p_nomination_id INT,
+    IN p_criminal_record BOOLEAN,
+    IN p_political_experience BOOLEAN,
+    IN p_membership_status BOOLEAN,
+    IN p_vetting_status VARCHAR(50)
+)
+BEGIN
+    INSERT INTO vetting (Vetting_id, Nominee_name, Reputation_score, Nomination_id, Criminal_record, Political_experience, Membership_status, Vetting_status)
+    VALUES (p_vetting_id, p_nominee_name, p_reputation_score, p_nomination_id, p_criminal_record, p_political_experience, p_membership_status, p_vetting_status);
+END$$
+
+DELIMITER ;
+
+
+
+--CANDIDATES
+DELIMITER $$
+
+CREATE PROCEDURE InsertCandidate (
+    IN p_candidate_name VARCHAR(50),
+    IN p_student_access_no VARCHAR(10),
+    IN p_programme VARCHAR(100),
+    IN p_manifesto TEXT,
+    IN p_campaign_start_date DATE,
+    IN p_campaign_end_date DATE
+)
+BEGIN
+    INSERT INTO Candidates (Candidate_Name, Student_Access_No, Programme, Manifesto, Campaign_start_date, Campaign_end_date)
+    VALUES (p_candidate_name, p_student_access_no, p_programme, p_manifesto, p_campaign_start_date, p_campaign_end_date);
+END$$
+
+DELIMITER ;
+
+
+
+--VOTES
+DELIMITER $$
+
+CREATE PROCEDURE InsertVote (
+    IN p_election_id INT,
+    IN p_candidate_id INT,
+    IN p_student_access_no VARCHAR(10)
+)
+BEGIN
+    INSERT INTO Votes (Election_id, Candidate_id, Student_Access_No)
+    VALUES (p_election_id, p_candidate_id, p_student_access_no);
+END$$
+
+DELIMITER ;
+
+
+--RESULTS
+DELIMITER $$
+
+CREATE PROCEDURE InsertResult (
+    IN p_candidate_id INT,
+    IN p_candidate_name VARCHAR(50),
+    IN p_total_votes INT,
+    IN p_election_date DATE,
+    IN p_vote_id INT,
+    IN p_status ENUM('ongoing', 'completed')
+)
+BEGIN
+    INSERT INTO Results (Candidate_id, Candidate_Name, Total_votes, Election_date, Vote_id, Status)
+    VALUES (p_candidate_id, p_candidate_name, p_total_votes, p_election_date, p_vote_id, p_status);
+END$$
+
+DELIMITER ;
+
+                 
+CALL InsertFaculty('F001','Faculty of Engineering and Technology','BSIT,BCSC, DATA SCINCE,CIVIL ENGINEERING');
+CALL InsertFaculty('F002','School of Law','LLB,MLaw');
+CALL InsertFaculty('F003','Faculty of Agricultural Sciences','MscA,BHN,BHNCD');
+CALL InsertFaculty('F004','Faculty of Public Health,Nursing and Midwifery','MPHL,MNS,BPH,BNS(Diploma entry)');
+CALL InsertFaculty('F005','School of Journalism','MA JSC,MA SC,BA JC,PHD JMC');
+CALL InsertFaculty('F006','School of Dentistry','BDS');
+CALL InsertFaculty('F007','School of Business','PGD HRM,PGB SBRE,MA HRM,MA BA,BBA,BPLM,Bsc AF,Bsc ES,BTHM');
+
+call InsertPosition('P001','MP Faculty of Engineering and Technology',2);
+call InsertPosition('P002','Guild President',2);
+call InsertPosition('P003','MP Non Resident Male',2);
+call InsertPosition('P004','MP Non Resident Female',2);
+call InsertPosition('P005','MP Disability',1);
+call InsertPosition('P006','MP School of Law',2);
+call InsertPosition('P007','MP Faculty of Agricultural Sciences',2);
+call InsertPosition('P008','MP School Nursing',1);
+call InsertPosition('P009','MP School of Business',2);
+call InsertPosition('P10','MP School of Social Sciences',2);
+call InsertPosition('P11','MP Journalism and Mass Comm',2);
+call InsertPosition('P12','Mp International Students',2);
+
+
+CALL InsertStudent('B24318','S23B13/030', 'Patrick', 'Lubogo','patrick.lubogo@example.com', 0707396198,'F001', 'BSIT');
+CALL InsertStudent('B22456','S22B13/001','Tom','Akakwasa','tom.akakwasa@gmail.com',0701562568,'F002','BSIT');
+DELIMITER //
+CREATE PROCEDURE InsertStudent(
+    IN p_Student_Access_No VARCHAR(10),
+    IN p_Registration_number VARCHAR(20),
+    IN p_Fname VARCHAR(50),
+    IN p_Lname VARCHAR(50),
+    IN p_Email VARCHAR(100),
+    IN p_Phone_number INT,
+    IN p_Programme VARCHAR(50),
+    IN p_faculty_id VARCHAR(10)
+)
+BEGIN
+    INSERT INTO student (Student_Access_No, Registration_number, Fname, Lname, Email, Phone_number, Programme, faculty_id)
+    VALUES (p_Student_Access_No, p_Registration_number, p_Fname, p_Lname, p_Email, p_Phone_number, p_Programme, p_faculty_id);
+END //
+DELIMITER ;
+
+-- Call the procedure 20 times to insert students
+CALL InsertStudent('B24318', 'S23B13/030', 'Patrick', 'Lubogo', 'patrick.lubogo@gmail.com', 0707396198, 'Engineering', 'F001');
+CALL InsertStudent('B23789', 'M23B14/020', 'Jane', 'Nakigozi', 'jane.nakigozi@gmail.com', 0774567891, 'LLB', 'F002');
+CALL InsertStudent('B24319', 'M22D13/003', 'Kamya', 'Johnson', 'kamya.johnson@gmail.com', 0774567892, 'BNH', 'F003');
+CALL InsertStudent('B24324', 'S23B14/004', 'moses', 'mpagi', 'moses.mpagi@gmail.com', 0784567893, 'Engineering', 'F001');
+CALL InsertStudent('B23893', 'M23B13/020', 'walube', 'jordan', 'walube.jordan@gmail.com', 0764567894, 'Data Science', 'F001');
+CALL InsertStudent('B24006', 'S23B13/006', 'Kisolo', 'Wilson', 'kisolo.wilson@gmail.com', 0744567895, 'Engineering', 'F001');
+CALL InsertStudent('B25007', 'S23B13/007', 'domado', 'Martinez', 'domado.martinez@gmail.com', 0784567896, 'Data Science', 'F001');
+CALL InsertStudent('B25437', 'M23B13/008', 'Fiona', 'sseguya', 'fiona.sseguya@gmail.com', 1234567897, 'Engineering', 'F001');
+CALL InsertStudent('B24589', 'S23B13/009', 'sonko', 'Anderson', 'sonko.anderson@gmail.com', 0784567898, 'BNS', 'F003');
+CALL InsertStudent('B24456', 'S24B13/010', 'Samatha', 'Mwesigye', 'samatha.mwesigye@gmail.com', 0784567899, 'LLB', 'F002');
+CALL InsertStudent('B23478', 'S23B13/011', 'Ayiko', 'Thomas', 'ayiko.thomas@gmail.com',0784567890, 'BA JC', 'F005');
+CALL InsertStudent('B34278', 'S23B13/012', 'Lynn', 'Abaasa', 'lynn.abaasa@gmail.com', 0744567891, 'BDS', 'F007');
+CALL InsertStudent('B43258', 'S23B13/013', 'Kevin', 'kamya', 'kevin.kamya@example.com', 0784567892, 'BA JC', 'F005');
+CALL InsertStudent('B24366', 'S23B13/014', 'Nambuya', 'Harris', 'nambuya.harris@gmail.com', 0782356789, 'BBA', 'FAC007');
+CALL InsertStudent('B34526', 'S23B13/OO5', 'Michael', 'Clark', 'michael.clark@example.com', 0784567894, 'LLB', 'F002');
+CALL InsertStudent('B23489', 'S23B13/020', 'muyomba', 'Lewis', 'muyomba.lewis@example.com', 0784567895, 'LLB', 'F002');
+
+
+-- Insert Applications
+CALL InsertApplication('A001', 'Patrick Lubogo', 'B24318', 'S23B13/030', 'Engineering', 'MP Faculty of Engineering and Technology', 50000, '2024-12-01');
+CALL InsertApplication('A002', 'Samatha Mwesigye', 'B24456', 'S24B13/010', 'LLB', 'Guild President', 100000, '2024-12-01');
+CALL InsertApplication('A003', 'Muyomba Lewis', 'B23489', 'S23B13/020', 'LLB', 'MP Non Resident Male', 50000, '2024-12-02');
+CALL InsertApplication('A004', 'Lynn Abaasa', 'B34278', 'S23B13/012', 'BDS', 'Guild President', 100000, '2024-12-03');
+CALL InsertApplication('A005', 'Mark Clark', 'B34526', 'S23B13/005', 'LLB', 'MP School of Law', 50000, '2024-12-03');
+CALL InsertApplication('A006', 'Ayiko Thomas', 'B23478', 'S23B13/011', 'BA JC', 'MP Disability', 50000, '2024-12-03');
+CALL InsertApplication('A007', 'Fiona SSseguya', 'B25437', 'M23B13/008', 'Engineering', 'MP Faculty of Engineering and Technology', 50000, '2024-12-03');
+
+CALL InsertApplication('A008', 'Nambuya Harris', 'B24366', 'S23B13/014', 'BBA', 'MP aculty of Residents Female', 50000, '2024-12-03');
+
+CALL InsertApplication('A009', 'Kevin Kamya', 'B43258', 'S23B13/013', 'BBA', 'MP aculty of Residents Female', 50000, '2024-12-03');CALL InsertApplication('A007', 'Fiona SSseguya', 'B25437', 'M23B13/008', 'Engineering', 'MP Faculty of Engineering and Technology', 50000, '2024-12-03');
+
+
+CALL InsertApplication('A010', 'Kamya Johnson', 'B24319', 'M22D13/003', 'BNS', 'MP Faculty of Agricultural Science', 50000, '2024-12-01');
+
+
+
+CALL InsertVerification('V001', 'Samatha Mwesigye', 'B24456', 'S24B13/010', 'A002', 'Verified');
+CALL InsertVerification('V002', 'Lubogo Patrick', 'B24318', 'S23B13/030', 'A001', 'Verified');
+CALL InsertVerification('V003', 'Ayiko Thomas', 'B23478', 'S23B13/011', 'A006', 'Pending');
+CALL InsertVerification('V004', 'Fiona SSseguya', 'B25437', 'M23B13/008', 'A007', 'Rejected');
+CALL InsertVerification('V005', 'Lynn Abaasa', 'B34278', 'S23B13/012', 'A004', 'Verified');
+CALL InsertVerification('V006', 'Kevin Kamya', 'B43258', 'S23B13/013', 'A009', 'Pending');
+
+CALL InsertVerification('V007', 'Kamya Johnson', 'B24319', 'M22D13/003', 'A010', 'Verified');
+
+CALL InsertVerification('V008', 'Nambuya Harris', 'B24366', 'S23B13/014', 'A008', 'Verified');
+
+CALL InsertVerification('V009', 'Kevin Kamya', 'B43258', 'S23B13/013', 'A009', 'Verified');
+
+CALL InsertVerification('V010', 'Muyomba Lewis' ,'B23489', 'S23B13/020', 'A003', 'Verified');
+
+CALL InsertVerification('V011', 'Mark Clark', 'B34526', 'S23B13/005', 'A005', 'Verified');
+
+
+
+
+
+CALL InsertNomination('Lubogo Patrick', 'V002', 'Approved');
+CALL InsertNomination('Samatha Mwesigye', 'V001','Approved');
+CALL InsertNomination('Fiona Sseguya', 'V004','Rejected');
+CALL InsertNomination('Ayiko Thomas', 'V003','Approved');
+CALL InsertNomination('Lynn Abaasa', 'V005','Approved');
+CALL InsertNomination('Mark Clark', 'V011','Approved');
+CALL InsertNomination('Kevin Kamya', 'V006','Approved');
+CALL InsertNomination('Nambuya Harris', 'V008','Aproved');
+CALL InsertNomination('Muyomba Lewis', 'V010', 'Approved');
+CALL InsertNomination('Kamya Johnson', 'V007', 'Approved');
+
+SELECT * FROM NOMINATION;
+
+CALL InsertVetting(101, 'lubogo Patrick', 85.5, 1, FALSE, TRUE, TRUE, 'Verified');
+CALL InsertVetting(102, 'Samatha Mwesigye', 92.3, 2, FALSE, TRUE, TRUE, 'Verified');
+CALL InsertVetting(103, 'Ayiko Thomas', 78.4, 3, FALSE, FALSE, TRUE, 'Pending');
+CALL InsertVetting(104, 'Fiona Sseguya', 60.2, 4, TRUE, FALSE, FALSE, 'Failed');
+CALL InsertVetting(105, 'Mark Clark', 88.0, 5, FALSE, TRUE, TRUE, 'Verified');
+CALL InsertVetting(106, 'Muyomba Lewis', 85.5, 1, FALSE, TRUE, TRUE, 'Verified');
+CALL InsertVetting(107, 'Kamya Johnson', 92.3, 2, FALSE, TRUE, TRUE, 'Verified');
+CALL InsertVetting(108, 'Kevin Kamya', 78.4, 3, FALSE, FALSE, TRUE, 'Verified');
+CALL InsertVetting(109, 'Nambuya Harris', 60.2, 4, TRUE, FALSE, FALSE, 'Verified');
+CALL InsertVetting(110, 'Lynn Abaasa', 60.2, 4, TRUE, FALSE, FALSE, 'Verified');
+
+
+
+
+CALL InsertCandidate('Lubogo Patrick', 'B24318', 'Engineering', 'Improving facilities and resources.', '2024-12-01', '2024-12-15');
+CALL InsertCandidate('Samatha Mwesigye', 'B24456', 'LLB', 'Ensuring transparency and accountability.', '2024-12-01', '2024-12-15');
+CALL InsertCandidate('Nambuya Harris', 'B24366', 'B', 'Promoting environmental awareness.', '2024-12-01', '2024-12-15');
+CALL InsertCandidate('Muyomba Lewis', 'B23489', 'LLB', 'Enhancing academic support systems.', '2024-12-01', '2024-12-15');
+
+CALL InsertCandidate('Kevin Kamya', 'B43258', 'BBA', 'Improving facilities and resources.', '2024-12-01', '2024-12-15');
+CALL InsertCandidate('Mark Clark', 'B34526', 'LLB', 'Ensuring transparency and accountability.', '2024-12-01', '2024-12-15');
+CALL InsertCandidate('Ayiko Thomas', 'B23478', 'BA JC', 'Promoting environmental awareness.', '2024-12-01', '2024-12-15');
+CALL InsertCandidate('Lynn Abaasa', 'B34278', 'BDS', 'Enhancing support systems to people.', '2024-12-01', '2024-12-15');
+
+
+CALL InsertVote(1, 1, 'B24318');
+CALL InsertVote(1, 2, 'B34278');
+CALL InsertVote(1, 3, 'B23478');
+CALL InsertVote(1, 4, 'B43258');
+CALL InsertVote(1, 2, 'B24366');
+
+
+CALL InsertResult(1, 'Lubogo Patrick', 150, '2024-12-07', 1, 'completed');
+CALL InsertResult(2, 'Nambuya Harris', 200, '2024-12-07', 2, 'completed');
+CALL InsertResult(3, 'Lynn Abaasa Lynn', 105, '2024-12-07', 3, 'completed');
+CALL InsertResult(4, 'Mark Clark', 100, '2024-12-07', 4, 'completed');
+CALL InsertResult(1, 'Kevin Kamya', 150, '2024-12-07', 1, 'completed');
+CALL InsertResult(1, 'Samatha Mwesigye', 700, '2024-12-07', 2, 'completed');
+CALL InsertResult(3, 'Muyomba Lewis', 75, '2024-12-07', 3, 'completed');
+CALL InsertResult(4, 'Ayiko Thomas', 100, '2024-12-07', 4, 'completed');
+
+
+
+
+
+
+--TRIGGERS      
+ CREATE TABLE ActionLog (
+    LogID INT AUTO_INCREMENT PRIMARY KEY,
+    TableName VARCHAR(50) NOT NULL,
+    ActionType ENUM('INSERT', 'DELETE') NOT NULL,
+    ActionTimestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    Details TEXT
+);
+
+SELECT * FROM ACTIONLOG;
+
+--AFTER INSERT TRIGGERS
+--STUDENTS
+DELIMITER //
+CREATE TRIGGER after_student_insert
+AFTER INSERT ON student
+FOR EACH ROW
+BEGIN
+    INSERT INTO ActionLog (TableName, ActionType, Details)
+    VALUES ('student', 'INSERT', CONCAT('New student added: Access_No=', NEW.Student_Access_No, ', Name=', NEW.Fname, ' ', NEW.Lname, ', Programme=', NEW.Programme));
+END;
+//
+DELIMITER ;
+
+
+--APPLICATIONS
+DELIMITER //
+CREATE TRIGGER after_application_insert
+AFTER INSERT ON Application
+FOR EACH ROW
+BEGIN
+    INSERT INTO ActionLog (TableName, ActionType, Details)
+    VALUES ('Application', 'INSERT', CONCAT('New application added: ID=', NEW.Application_ID, ', Applicant=', NEW.Applicant_Name, ', Position=', NEW.Position));
+END;
+//
+DELIMITER ;
+
+
+--CANDIDATES
+DELIMITER //
+CREATE TRIGGER after_candidate_insert
+AFTER INSERT ON Candidates
+FOR EACH ROW
+BEGIN
+    INSERT INTO ActionLog (TableName, ActionType, Details)
+    VALUES ('Candidates', 'INSERT', CONCAT('New candidate added: ID=', NEW.Candidate_id, ', Name=', NEW.Candidate_Name, ', Programme=', NEW.Programme));
+END;
+//
+DELIMITER ;
+
+
+--VOTES
+DELIMITER //
+CREATE TRIGGER after_vote_insert
+AFTER INSERT ON Votes
+FOR EACH ROW
+BEGIN
+    INSERT INTO ActionLog (TableName, ActionType, Details)
+    VALUES ('Votes', 'INSERT', CONCAT('New vote added: VoteID=', NEW.Vote_id, ', ElectionID=', NEW.Election_id, ', CandidateID=', NEW.Candidate_id, ', Student=', NEW.Student_Access_No));
+END;
+//
+DELIMITER ;
+
+
+
+--AFTER DELETE TRIGGERS
+--STUDENTS
+DELIMITER //
+CREATE TRIGGER after_student_delete
+AFTER DELETE ON student
+FOR EACH ROW
+BEGIN
+    INSERT INTO ActionLog (TableName, ActionType, Details)
+    VALUES ('student', 'DELETE', CONCAT('Student deleted: Access_No=', OLD.Student_Access_No, ', Name=', OLD.Fname, ' ', OLD.Lname, ', Programme=', OLD.Programme));
+END;
+//
+DELIMITER ;
+
+
+--APPLICATION
+DELIMITER //
+CREATE TRIGGER after_application_delete
+AFTER DELETE ON Application
+FOR EACH ROW
+BEGIN
+    INSERT INTO ActionLog (TableName, ActionType, Details)
+    VALUES ('Application', 'DELETE', CONCAT('Application deleted: ID=', OLD.Application_ID, ', Applicant=', OLD.Applicant_Name, ', Position=', OLD.Position));
+END;
+//
+DELIMITER ;
+
+
+--CANDIDATES
+DELIMITER //
+CREATE TRIGGER after_candidate_delete
+AFTER DELETE ON Candidates
+FOR EACH ROW
+BEGIN
+    INSERT INTO ActionLog (TableName, ActionType, Details)
+    VALUES ('Candidates', 'DELETE', CONCAT('Candidate deleted: ID=', OLD.Candidate_id, ', Name=', OLD.Candidate_Name, ', Programme=', OLD.Programme));
+END;
+//
+DELIMITER ;
+
+
+--VOTES
+DELIMITER //
+CREATE TRIGGER after_vote_delete
+AFTER DELETE ON Votes
+FOR EACH ROW
+BEGIN
+    INSERT INTO ActionLog (TableName, ActionType, Details)
+    VALUES ('Votes', 'DELETE', CONCAT('Vote deleted: VoteID=', OLD.Vote_id, ', ElectionID=', OLD.Election_id, ', CandidateID=', OLD.Candidate_id, ', Student=', OLD.Student_Access_No));
+END;
+//
+DELIMITER ;
+
+
+
+
+---USER ACCOUNTS
+
+-- Grant ALL privileges to the ADMIN user
+CREATE USER 'admin'@'localhost' IDENTIFIED BY 'admin123';
+GRANT ALL PRIVILEGES ON guild_election_db.* TO 'admin'@'localhost';
+FLUSH PRIVILEGES;
+
+-- Create STUDENT user with privileges to vote and nominate
+CREATE USER 'student'@'localhost' IDENTIFIED BY 'student123';
+GRANT SELECT, INSERT ON guild_election_db.Votes TO 'student'@'localhost';
+GRANT SELECT, INSERT ON guild_election_db.Nomination TO 'student'@'localhost';
+FLUSH PRIVILEGES;
+
+-- Create ELECTORAL_COMMITTEE user with privileges to manage relevant tables
+CREATE USER 'electoral_committee'@'localhost' IDENTIFIED BY 'committee123';
+GRANT SELECT ON guild_election_db.* TO 'electoral_committee'@'localhost';
+GRANT INSERT, UPDATE ON guild_election_db.Candidates TO 'electoral_committee'@'localhost';
+GRANT INSERT, UPDATE ON guild_election_db.Vetting TO 'electoral_committee'@'localhost';
+GRANT INSERT, UPDATE ON guild_election_db.Verification TO 'electoral_committee'@'localhost';
+FLUSH PRIVILEGES;
